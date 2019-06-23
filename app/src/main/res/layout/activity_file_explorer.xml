@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:id="@+id/file_explorer_fragment_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_alignParentTop="true"
+        android:orientation="vertical"
+        android:layout_above="@+id/file_explorer_status">
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/file_explorer_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:background="@color/selector"
+        android:orientation="horizontal"
+        android:padding="5dp"
+        android:weightSum="1">
+        <TextView
+            android:id="@+id/fe_tv_status"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:layout_weight=".5"
+            android:textSize="20sp"
+            android:text="status"/>
+        <Button
+            android:id="@+id/fe_btn_send"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight=".5"
+            android:textSize="20sp"
+            android:text="Send"/>
+
+    </LinearLayout>
+
+</RelativeLayout>
