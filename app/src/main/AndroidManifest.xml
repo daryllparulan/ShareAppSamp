@@ -36,6 +36,7 @@
         <activity android:name=".FileExplorerActivity" ></activity>
         <activity android:name=".ReceiveActivity" ></activity>
         <activity android:name=".SendActivity" ></activity>
+        <activity android:name=".ConnectedActivity" ></activity>
     </application>
 
 </manifest>

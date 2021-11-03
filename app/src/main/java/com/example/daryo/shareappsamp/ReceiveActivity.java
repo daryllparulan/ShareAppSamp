@@ -2,12 +2,15 @@ package com.example.daryo.shareappsamp;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.widget.TextView;
@@ -44,7 +47,7 @@ public class ReceiveActivity extends AppCompatActivity implements FileReceivedCa
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
 
-        receive();
+        //receive();
 
 
     }
@@ -96,11 +99,30 @@ public class ReceiveActivity extends AppCompatActivity implements FileReceivedCa
         Log.e(MainActivity.TAG, "info" + info.toString());
         if(info.groupFormed && info.isGroupOwner){
             //receiver
-            FileServerAsyncTask asyncTask = FileServerAsyncTask.getInstance(this);
-            if(asyncTask.getStatus().equals(AsyncTask.Status.RUNNING)){
-                return;
-            }
-            asyncTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,"");
+            //FileServerAsyncTask asyncTask = new FileServerAsyncTask(this);
+            //asyncTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,"");
+            Intent i = new Intent(this, ConnectedActivity.class);
+            startActivity(i);
+            finish();
         }
     }
+
+    public void isWifiDirectEnabled(boolean isEnabled){
+        if(!isEnabled){
+            AlertDialog alertDialog = new AlertDialog.Builder(this).create();
+            alertDialog.setTitle("Error");
+            alertDialog.setMessage("Please Enable Wifi or Wifi Direct");
+            alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
+                    new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int which) {
+                            dialog.dismiss();
+                            finish();
+                        }
+                    });
+            alertDialog.show();
+        }else {
+            receive();
+        }
+    }
+
 }

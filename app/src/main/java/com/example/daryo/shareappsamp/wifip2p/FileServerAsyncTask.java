@@ -1,53 +1,35 @@
 package com.example.daryo.shareappsamp.wifip2p;
 
-import android.content.Context;
-import android.content.Intent;
-import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Environment;
 import android.util.Log;
-import android.view.View;
 
 import com.example.daryo.shareappsamp.MainActivity;
 import com.example.daryo.shareappsamp.interfaces.FileReceivedCallback;
 import com.example.daryo.shareappsamp.utils.Item;
-import com.example.daryo.shareappsamp.utils.ObjFile;
-import com.example.daryo.shareappsamp.utils.Util;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.OutputStream;
-import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 
 public class FileServerAsyncTask extends AsyncTask<String, String, String> {
 
     private FileReceivedCallback mCallback;
-    private static FileServerAsyncTask mInstance;
 
-    private FileServerAsyncTask(FileReceivedCallback mCallback) {
+
+    public FileServerAsyncTask(FileReceivedCallback mCallback) {
         this.mCallback = mCallback;
 
     }
-
-    public static synchronized FileServerAsyncTask getInstance(FileReceivedCallback mCallback){
-        if(mInstance == null){
-            mInstance = new FileServerAsyncTask(mCallback);
-        }
-        return mInstance;
-    }
-
 
 
     @Override
@@ -93,7 +75,7 @@ public class FileServerAsyncTask extends AsyncTask<String, String, String> {
                 //check if directory
                 if(filesToReceive.get(i).isDir()){
                     //file is directory
-                    Util.receiveDirectoryOrFile(bis, dis, "");
+                    receiveDirectoryOrFile(bis, dis, "");
 
                 }else {
                     //single file
@@ -128,7 +110,9 @@ public class FileServerAsyncTask extends AsyncTask<String, String, String> {
             }
 
             ois.close();
-            dis.close();
+
+            //no need to close dos as oos.close will close the bis
+            //dis.close();
 
             serverSocket.close();
 
@@ -150,19 +134,13 @@ public class FileServerAsyncTask extends AsyncTask<String, String, String> {
     @Override
     protected void onPostExecute(String result) {
         if (result != null) {
-//            statusText.setText("File copied - " + result);
             mCallback.onFileReceived(result, true);
-//            Intent intent = new Intent();
-//            intent.setAction(android.content.Intent.ACTION_VIEW);
-//            intent.setDataAndType(Uri.parse("file://" + result), "image/*");
-//            context.startActivity(intent);
         }
     }
 
     private void copyFile(InputStream in, OutputStream out){
 
         try {
-//            out = new FileOutputStream(file);
             byte[] buf = new byte[1024];
             int len;
             while((len=in.read(buf))>0){
@@ -187,6 +165,65 @@ public class FileServerAsyncTask extends AsyncTask<String, String, String> {
                 e.printStackTrace();
             }
         }
+    }
+
+    private void receiveDirectoryOrFile(BufferedInputStream bis,
+                                              DataInputStream dis,
+                                              String prevFileName) throws IOException{
+
+        int isDir = dis.readByte();
+        String fileName = dis.readUTF();
+
+        if(isDir == 1){
+            //directory
+            File dirs = new File(Environment.getExternalStorageDirectory()
+                    + "/P2PSample/"
+                    + prevFileName
+                    + "/" + fileName);
+
+            if(!dirs.exists()){
+                dirs.mkdir();
+            }
+
+            receiveDirectoryOrFile(bis, dis, prevFileName + "/" + fileName);
+
+        }else if (isDir == 0) {
+            //file
+
+            long fileLength = dis.readLong();
+
+            File file = new File(Environment.getExternalStorageDirectory()
+                    + "/P2PSample/"
+                    + prevFileName
+                    + "/" + fileName);
+
+            FileOutputStream fos = new FileOutputStream(file);
+            BufferedOutputStream bos = new BufferedOutputStream(fos);
+
+            int len;
+            long fileSize = 0;
+            int readLength = fileLength > 4096 ? 4096 : (int)fileLength;
+            byte buf[] = new byte[readLength];
+
+            while ((len = bis.read(buf)) != -1 && fileSize < fileLength) {
+                bos.write(buf, 0, len);
+                bos.flush();
+                fileSize += len;
+                if((fileSize + readLength) >= fileLength){
+                    buf = new byte[(int)(fileLength-fileSize)];
+                }
+
+                // to update
+                Log.e("STAT:",  fileName + " " + (int) ((fileSize * 100) / fileLength) + "%");
+                mCallback.onFileReceived(fileName + " " + (int) ((fileSize * 100) / fileLength) + "%", true);
+            }
+
+            bos.close();
+
+            receiveDirectoryOrFile(bis, dis, prevFileName);
+
+        }
+
     }
 
 }

@@ -1,30 +1,21 @@
 package com.example.daryo.shareappsamp.wifip2p;
 
-import android.content.ContentResolver;
 import android.content.Context;
-import android.net.Uri;
 import android.os.AsyncTask;
-import android.os.Environment;
 import android.util.Log;
 
 import com.example.daryo.shareappsamp.MainActivity;
-import com.example.daryo.shareappsamp.SendActivity;
 import com.example.daryo.shareappsamp.interfaces.FileReceivedCallback;
 import com.example.daryo.shareappsamp.utils.Item;
-import com.example.daryo.shareappsamp.utils.ObjFile;
-import com.example.daryo.shareappsamp.utils.Util;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
-import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.ObjectOutputStream;
-import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -68,7 +59,7 @@ public class SendFileAsyncTask extends AsyncTask<String, String, String> {
                     //file is directory
                     File file = new File(fileName);
 
-                    Util.sendDirectoryOrFile(file, bos, dos);
+                    sendDirectoryOrFile(file, bos, dos);
                     //send 2 as directory files all send
                     dos.writeByte(2);
                     dos.writeUTF("end");
@@ -100,7 +91,9 @@ public class SendFileAsyncTask extends AsyncTask<String, String, String> {
             }
 
             oos.close();
-            dos.close();
+
+            //no need to close dos as oos.close will close the bos
+            //dos.close();
 
             return "success";
         } catch (FileNotFoundException e) {
@@ -110,6 +103,7 @@ public class SendFileAsyncTask extends AsyncTask<String, String, String> {
         } catch (IOException e) {
             //catch logic
             Log.e(MainActivity.TAG, "send " + e.toString());
+            e.printStackTrace();
             return null;
         }
 
@@ -138,4 +132,52 @@ public class SendFileAsyncTask extends AsyncTask<String, String, String> {
             mCallback.onFileReceived("failed", false);
         }
     }
+
+    private void sendDirectoryOrFile(File sourceLocation,
+                                           BufferedOutputStream bos,
+                                           DataOutputStream dos) throws IOException{
+
+        if(sourceLocation.isDirectory()){
+            //do send folder path for receiver to create
+            dos.writeByte(1);
+            dos.writeUTF(sourceLocation.getName());
+
+            String[] children = sourceLocation.list();
+            for (int i = 0; i < sourceLocation.listFiles().length; i++){
+                sendDirectoryOrFile(new File(sourceLocation, children[i]), bos, dos);
+            }
+
+        }else {
+            dos.writeByte(0);
+
+            long fileLength = sourceLocation.length();
+            String fileName = sourceLocation.getName();
+
+            dos.writeUTF(fileName);
+            dos.writeLong(fileLength);
+
+            FileInputStream fis = new FileInputStream(sourceLocation);
+            BufferedInputStream bis = new BufferedInputStream(fis);
+
+            int len;
+            long fileSize = 0;
+            byte buf[] = new byte[4096];
+
+            while ((len = bis.read(buf)) != -1) {
+                bos.write(buf, 0, len);
+                bos.flush();
+                fileSize += len;
+                //count for progress bar
+                Log.e("STAT:",  fileName + " " + (int) ((fileSize * 100) / fileLength) + "%");
+                mCallback.onFileReceived(fileName + " " + (int) ((fileSize * 100) / fileLength) + "%", true);
+            }
+
+
+            bis.close();
+
+        }
+    }
+
 }
+
+
